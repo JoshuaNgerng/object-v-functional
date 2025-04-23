@@ -48,3 +48,7 @@ cabal.project.local~
 .HTF/
 .ghc.environment.*
 
+#test and debug files
+test*
+test/*
+debug*
