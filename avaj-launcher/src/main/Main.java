@@ -13,17 +13,27 @@
 package main;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
-import java.util.Arrays;
 
-// import main.WeatherTower;
-
+class ParsingError extends Exception {
+	public  ParsingError(String msg) {
+		super(msg);
+	}
+	public ParsingError(String msg, Exception e) {
+		super(String.format("%s: %s", msg, e.toString()));
+	}
+	public  ParsingError(String msg, int lineno) {
+		super(String.format("%s, lineno:%d", msg, lineno));
+	}
+	public ParsingError(String msg, Exception e, int lineno) {
+		super(String.format("%s: %s lineno: %d", msg, e.toString(), lineno));
+	}
+}
 
 public class Main
 {
-	static private WeatherTower weathertower;
+	static private final WeatherTower weathertower;
 	static private int cycle;
 
 	static {
@@ -31,24 +41,21 @@ public class Main
 		cycle = 0;
 	}
 
-	private static boolean simulationInit(String fname) {
+	private static void simulationInit(String fname) throws ParsingError {
 		int i = 0;
 		try (Scanner reader = new Scanner(new File(fname))) {
 			while (reader.hasNextLine()) {
 				if (!reader.hasNextLine()) {
-					System.out.println("Empty Input File");
-					return (false);
+					throw new ParsingError("Empty Input File");
 				}
 				i ++;
 				cycle = Integer.parseInt(reader.nextLine());
 				while (reader.hasNextLine()) {
 					i ++;
 					String[] data = reader.nextLine().split(" ");
-					// System.out.println(Arrays.deepToString(data));
 					if (data.length != 5) {
-						System.out.println(
-							"Aircraft needs 5 fields\nTYPE ID LONGTITUDE LATITUDE HEIGHT"
-						);
+						throw new ParsingError("Aircraft needs 5 fields\nTYPE ID LONGTITUDE LATITUDE HEIGHT", i);
+						
 					}
 					Flyable buffer = AircraftFactory.newAirCraft(
 						data[0], data[1],
@@ -59,26 +66,17 @@ public class Main
 					buffer.registerTower(weathertower);
 				}
 				if (weathertower.numObservers() == 0) {
-					System.out.println("No Aircraft data in input file");
-					return false;
+					throw new ParsingError("No Aircraft data in input file");
 				}
 			}
-			return true;
 		} catch (FileNotFoundException e) {
-			System.out.println(e.getMessage());
+			throw new ParsingError(String.join("File ", fname, " cannot be opened"), e);
 		} catch (NumberFormatException e) {
 			if (i == 1) {
-				System.out.println(
-					"First line must be number of cycle of the simulation"
-				);
-			} else {
-				System.out.println(
-					"Aircraft needs 5 fields\nTYPE ID LONGTITUDE LATITUDE HEIGHT"
-				);
+				throw new ParsingError("First line must be number of cycle of the simulation", e, i); 
 			}
-			System.out.printf("%d: %s", i, e.getMessage());	
+			throw new ParsingError("Aircraft needs 5 fields\nTYPE ID LONGTITUDE LATITUDE HEIGHT", e, i); 
 		}
-		return false;
 	}
 
 	public static void main(String[] args) {
@@ -86,7 +84,10 @@ public class Main
 			System.out.println("Pass in an input filename as parameter");
 			System.exit(1);
 		}
-		if (!simulationInit(args[0])) {
+		try {
+			simulationInit(args[0]);
+		} catch (ParsingError e) {
+			System.out.println(e.getMessage());
 			System.exit(1);
 		}
 		for (int i = 0; i < cycle; i ++) {

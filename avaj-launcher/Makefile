@@ -30,7 +30,7 @@ CLASSES = $(SOURCES:$(SRC_DIR)/%.java=$(BIN_DIR)/%.class)
 
 # Default target: compile and run
 all: $(CLASSES)
-	$(JAVA) -cp $(BIN_DIR) $(ENTRY)
+	@echo $(JAVA) -cp $(BIN_DIR) $(ENTRY)
 
 # Rule to compile .java files to .class files
 $(BIN_DIR)/%.class: $(SRC_DIR)/%.java
